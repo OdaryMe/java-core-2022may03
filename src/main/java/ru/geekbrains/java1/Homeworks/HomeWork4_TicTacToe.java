@@ -10,8 +10,9 @@ public class HomeWork4_TicTacToe {
     private static final char DOT_AI = '0';
     private static final char DOT_EMPTY = '.';
     private static char[][] field;
-    private static final int FIELD_SIZE_X = 3;
-    private static final int FIELD_SIZE_Y = 3;
+    private static int FIELD_SIZE_X ;
+    private static int FIELD_SIZE_Y;
+    private static int winLength;
 
     private static String playerOneName = "";
     private static int scoreHuman = 0;
@@ -20,15 +21,18 @@ public class HomeWork4_TicTacToe {
 
 
     public static void main(String[] args) {
-        System.out.print("Представьтесь пожалуйста >>> ");
+        System.out.print("Представьтесь, пожалуйста >>> ");
         playerOneName = SCANNER.nextLine();
-        playRound();
-
+        System.out.println("Введите размеры поля X и Y (от 3-х и более) и длину выигрышной линии.\nЧерез пробел>>>");
+        int sizeX = SCANNER.nextInt();
+        int sizeY = SCANNER.nextInt();
+        int len = SCANNER.nextInt();
+        playRound(sizeX, sizeY, len);
     }
 
-    private static void playRound() {
+    private static void playRound(int sizeX, int sizeY, int len) {
         do {
-            initField();
+            initField(sizeX, sizeY, len);
             printField();
             while (true) {
                 humanTurn();
@@ -47,7 +51,7 @@ public class HomeWork4_TicTacToe {
 
 
     private static boolean gameCheck(char dot, String s) {
-        if (checkWin(dot)) {
+        if (checkWin(dot, winLength)) {
             if (dot == DOT_HUMAN) {
                 scoreHuman++;
             } else {
@@ -63,36 +67,43 @@ public class HomeWork4_TicTacToe {
         return false;
     }
 
-    private static boolean checkWin(char dot) {
-        //понимаю, что можно ввести переменную, котора будет увеличиваться при каждом непустом значении ячейки,
-        // но ни один код, который я таким образом написала, не срабатывает.
-        // Ну, например:
-//        private static boolean checkHorizontal(char dot) {
-//            int i = 0;
-//            int lineHorizontal = 0;
-//            for (int j = 0; j < FIELD_SIZE_Y; j++) {
-//                if (field[j][i + lineHorizontal] == dot)
-//                    lineHorizontal++;
-//                else lineHorizontal = 0;
-//            }
-//            return lineHorizontal == WIN_LINE;
-//        }
-        // То есть хочу сказать, что с точки зрения алгоритма я этот вопрос условно решила, а вот синтаксис не догоняю.
-        // Поэтому вот только такая хрень:
+    private static boolean scanField(char dot, int length) {
+        for (int i = 0; i < FIELD_SIZE_Y; i++) {
+            for (int j = 0; j < FIELD_SIZE_X; j++) {
+                if (isCellEmpty(i, j)) {
+                    field[i][j] = dot;
+                    if(checkWin(dot, length)){
+                        if (dot == DOT_AI) return true;
+                        if (dot == DOT_HUMAN) {
+                            field[i][j] = DOT_AI;
+                            return true;
+                        }
+                     }
+                     field[i][j] = DOT_EMPTY;
+                }
+            }
+        }return false;
+    }
 
-        int i = 0;
-        for (int y = 0; y < FIELD_SIZE_Y; y++) {
-            if ((field[y][i] == dot && field[y][i + 1] == dot && field[y][i + 2] == dot)) return true;
+        private static boolean checkWin(char dot, int length) {
+        for (int y = 0; y < FIELD_SIZE_Y; y++){
+            for (int x = 0; x < FIELD_SIZE_X; x++){
+                if(checkLine(x, y, 1, 0, length, dot)) return true;
+                if(checkLine(x, y, 1, 1, length, dot)) return true;
+                if(checkLine(x, y, 0, 1, length, dot)) return true;
+                if(checkLine(x, y, 1, -1, length, dot)) return true;
+            }
         }
-        int j = 0;
-        for (int x = 0; x < FIELD_SIZE_X; x++) {
-            if ((field[j][x] == dot && field[j + 1][x] == dot && field[j + 2][x] == dot)) return true;
-        }
-
-        if (field[j][i] == dot && field[j + 1][i + 1] == dot && field[j + 2][i + 2] == dot) return true;
-        if (field[j][i + 2] == dot && field[j + 1][i + 1] == dot && field[j + 2][i] == dot) return true;
-
         return false;
+    }
+
+    private static boolean checkLine(int x, int y, int incrementX, int incrementY, int len, char dot) {
+        final int endXLine = x + (len - 1) * incrementX;
+        final int endYLine = y + (len - 1) * incrementY;
+        if(!isCellValid(endYLine, endXLine)) return false; //Делала наоборот, потом поменяла, как у Саши...
+            for (int i = 0; i < len; i++) {
+                if(field[y + i * incrementY][x + i * incrementX] != dot) return false;
+        }return true;
     }
 
 
@@ -108,7 +119,7 @@ public class HomeWork4_TicTacToe {
     private static void humanTurn() {
         int x, y;
         do {
-            System.out.printf("введите координаты х и у через пробел >>>>>");
+            System.out.print("введите координаты х и у через пробел >>>>>");
             x = SCANNER.nextInt() - 1;
             y = SCANNER.nextInt() - 1;
         } while (!isCellValid(x, y) || !isCellEmpty(x, y));
@@ -116,24 +127,31 @@ public class HomeWork4_TicTacToe {
         field[y][x] = DOT_HUMAN;
     }
 
-    private static void aiTurn() {
+    private static void aiTurn(){
+        if(scanField(DOT_AI, winLength)) return;
+        if(scanField(DOT_HUMAN, winLength)) return;
+        if(scanField(DOT_AI, winLength - 1)) return;
+        if(scanField(DOT_HUMAN, winLength - 1)) return;
+        if(scanField(DOT_AI, winLength - 2)) return;
+        if(scanField(DOT_HUMAN, winLength - 2)) return;
+        aiTurnEasy();
+    }
+
+    private static void aiTurnEasy() {
         int x, y;
         do {
             x = RANDOM.nextInt(FIELD_SIZE_X);
             y = RANDOM.nextInt(FIELD_SIZE_Y);
         } while (!isCellEmpty(x, y));
-
         field[y][x] = DOT_AI;
     }
 
-    private static boolean isCellValid(int x, int y) {
-        return x >= 0 && y >= 0 && x < FIELD_SIZE_X && y < FIELD_SIZE_Y;
-    }
-
-    private static boolean isCellEmpty(int x, int y) {return field[y][x] == DOT_EMPTY;
-    }
-
-    private static void initField() {
+    private static boolean isCellValid(int x, int y) {return x >= 0 && y >= 0 && x < FIELD_SIZE_X && y < FIELD_SIZE_Y;}
+    private static boolean isCellEmpty(int x, int y) {return field[y][x] == DOT_EMPTY;}
+    private static void initField(int sizeX, int sizeY, int len) {
+        FIELD_SIZE_X = sizeX;
+        FIELD_SIZE_Y = sizeY;
+        winLength = len;
         field = new char[FIELD_SIZE_Y][FIELD_SIZE_X];
         for (int y = 0; y < FIELD_SIZE_Y; y++) {
             for (int x = 0; x < FIELD_SIZE_X; x++) {
